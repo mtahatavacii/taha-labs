@@ -1,0 +1,77 @@
+alertmanager:
+  enabled: true
+  config:
+    global:
+      resolve_timeout: 5m
+    route:
+      receiver: telegram
+      group_by: ['alertname','namespace']
+      group_wait: 30s
+      group_interval: 5m
+      repeat_interval: 12h
+      routes:
+      - matchers:
+        - alertname = "Watchdog"
+        receiver: "null"
+      - matchers:
+        - severity = "info"
+        receiver: "null"
+grafana:
+  adminUser: admin
+  adminPassword: prom-operator
+  assertNoLeakedSecrets: false
+  grafana.ini:
+    server:
+      root_url: http://localhost:3000/grafana
+    smtp:
+      enabled: true
+      host: smtp.gmail.com:587
+      user: user@gmail.com
+      password: pass
+      skip_verify: true
+  ingress:
+    enabled: true
+    hosts:
+    - grafana.mtahatavaci.site
+    path: /grafana/?(.*)
+    annotations:
+      kubernetes.io/ingress.class: nginx
+      nginx.ingress.kubernetes.io/rewrite-target: /$1
+      nginx.ingress.kubernetes.io/use-regex: "true"
+  sidecar:
+    dashboards:
+      enabled: true
+      multicluster:
+        global:
+          enabled: true
+        etcd:
+          enabled: true
+  persistence:
+    enabled: true
+    type: pvc
+    accessModes:
+    - ReadWriteOnce
+    size: 5Gi
+    storageClassName: local-path
+  plugins:
+  - digrich-bubblechart-panel
+  - grafana-clock-panel
+  - grafana-piechart-panel
+  resources:
+    requests:
+      memory: 500Mi
+prometheus:
+  prometheusSpec:
+    externalLabels:
+      cluster: monitoring
+    enableRemoteWriteReceiver: true
+    retention: 40d
+    storageSpec:
+      volumeClaimTemplate:
+        spec:
+          accessModes:
+          - ReadWriteOnce
+          resources:
+            requests:
+              storage: 5Gi
+          storageClassName: local-path
